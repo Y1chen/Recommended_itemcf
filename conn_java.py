@@ -1,6 +1,6 @@
 from itemcf import use
 import socket
-host = '192.168.43.185'
+host = 'localhost'
 port = 8890
 while True:
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -11,7 +11,7 @@ while True:
     info = sock.recv(1024)
     if info != None:
         result = use(str(info.decode()))
-        sock.send(result)
+        sock.send(result.encode())
         sock.close()
     if info == 'exit':
         break

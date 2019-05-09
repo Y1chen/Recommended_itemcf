@@ -11,7 +11,7 @@ from time import strftime, localtime
 import time
 from operator import itemgetter
 from collections import defaultdict
-random.seed(0)
+# random.seed(0)
 
 
 class ItemBasedCF(object):
@@ -22,24 +22,25 @@ class ItemBasedCF(object):
         self.n_sim_items = 20  # 定义相似物品数20
         self.n_rec_items = 10  # 定义推荐物品数10
 
+        self.items_usr_it = {}
         self.items_sim_mat = {}  # 存储物品相似矩阵
         self.items_popular = {}
         self.items_count = 0
 
-        print('相似物品数 = %d' % self.n_sim_items, file=sys.stderr)
-        print('推荐物品数 = %d' % self.n_rec_items, file=sys.stderr)
+        # print('相似物品数 = %d' % self.n_sim_items, file=sys.stderr)
+        # print('推荐物品数 = %d' % self.n_rec_items, file=sys.stderr)
 
     @staticmethod
     def load_data(classification):
-        r = redis.Redis(host='localhost', port=6379, decode_responses=True)
+        r = redis.Redis(host='39.105.170.59', port=6379, password='Xxmy.980205', decode_responses=True)
         for index, line in enumerate(r.lrange(classification, 0, -1)):
             yield line.strip('\r\n')
 
     def generate_dataset(self):
         trainset_len = 0
-        if int(strftime('H', localtime(time.time()))) < 10:
+        if int(strftime("%H", localtime(time.time()))) < 10:
             data = self.load_data('breakfast')
-        elif int(strftime('H', localtime(time.time()))) > 10:
+        elif int(strftime("%H", localtime(time.time()))) > 10:
             data = self.load_data('dinner')
         for line in data:
             user, items, rating = line.split('::')
@@ -49,7 +50,7 @@ class ItemBasedCF(object):
 
     def calc_items_sim(self):
         # 记录物品被选购过的次数，从而反映出物品的流行度
-        print('计算物品数量和流行程度…', file=sys.stderr)
+        # print('计算物品数量和流行程度…', file=sys.stderr)
         # 计算物品的流行度 实质是一个物品被多少用户操作过（即选购，并有评分） 以下数据虚构
         # {'914': 23, '3408': 12, '2355': 4, '1197': 12, '2804': 31, '594': 12  .....}
         for user, items in self.trainset.items():
@@ -60,17 +61,17 @@ class ItemBasedCF(object):
                     self.items_popular[item] = 0
                 self.items_popular[item] += 1
 
-        print('计算物品数量和流行度成功', file=sys.stderr)
+        # print('计算物品数量和流行度成功', file=sys.stderr)
 
         # 计算总共被选购过的物品数
         self.items_count = len(self.items_popular)
 
-        print('总计物品数量 = %d' % self.items_count, file=sys.stderr)
+        # print('总计物品数量 = %d' % self.items_count, file=sys.stderr)
 
         # 根据用户使用习惯 构建物品相似度
         itemsim_mat = self.items_sim_mat
 
-        print('建立用户矩阵倒排表...', file=sys.stderr)
+        # print('建立用户矩阵倒排表...', file=sys.stderr)
 
         # {'914': defaultdict( <class 'int'>, {'3408': 1, '2355': 1  , '1197': 1, '2804': 1, '594': 1, '919': 1})}
         for user, items in self.trainset.items():
@@ -81,8 +82,8 @@ class ItemBasedCF(object):
                         continue
                     itemsim_mat[i1][i2] += 1
 
-        print('建立用户矩阵倒排表成功', file=sys.stderr)
-        print('计算商品相似读矩阵...', file=sys.stderr)
+        # print('建立用户矩阵倒排表成功', file=sys.stderr)
+        # print('计算商品相似读矩阵...', file=sys.stderr)
 
         simfactor_count = 0
         PRINT_STEP = 2000000
@@ -92,16 +93,13 @@ class ItemBasedCF(object):
         for i1, related_items in itemsim_mat.items():
             for i2, count in related_items.items():
                 # 以下公式为 两个a,b物品共同被喜欢的用户数/ 根号下（喜欢物品a的用户数 乘 喜欢物品b的用户数）
-                itemsim_mat[i1][i2] = count / math.sqrt(
-                    self.items_popular[i1] * self.items_popular[i2])
+                itemsim_mat[i1][i2] = count / math.sqrt(self.items_popular[i1] * self.items_popular[i2])
                 simfactor_count += 1
-                if simfactor_count % PRINT_STEP == 0:
-                    print('计算物品相似度因素(%d)' % simfactor_count, file=sys.stderr)
 
-        print('计算物品相似度矩阵成功', file=sys.stderr)
-        print('总计相似因素数量 = %d' % simfactor_count, file=sys.stderr)
+        # print('计算物品相似度矩阵成功', file=sys.stderr)
+        # print('总计相似因素数量 = %d' % simfactor_count, file=sys.stderr)
+
     # 找到K个相似物品 并推荐N个物品
-
     def recommend(self, user):
 
         K = self.n_sim_items
@@ -123,7 +121,7 @@ class ItemBasedCF(object):
 
     def evaluate(self):
         ''' print evaluation result: precision, recall, coverage and popularity '''
-        print('Evaluation start...', file=sys.stderr)
+        # print('Evaluation start...', file=sys.stderr)
 
         N = self.n_rec_items
         #  varables for precision and recall
@@ -136,8 +134,8 @@ class ItemBasedCF(object):
         popular_sum = 0
 
         for i, user in enumerate(self.trainset):
-            if i % 500 == 0:
-                print ('recommended for %d users' % i, file=sys.stderr)
+            # if i % 500 == 0:
+                # print ('recommended for %d users' % i, file=sys.stderr)
             test_items = self.testset.get(user, {})
             rec_items = self.recommend(user)
             for item, _ in rec_items:
@@ -154,8 +152,8 @@ class ItemBasedCF(object):
         coverage = len(all_rec_items) / (1.0 * self.items_count)
         popularity = popular_sum / (1.0 * rec_count)
 
-        print ('precision=%.4f\trecall=%.4f\tcoverage=%.4f\tpopularity=%.4f' %
-               (precision, recall, coverage, popularity), file=sys.stderr)
+        # print ('precision=%.4f\trecall=%.4f\tcoverage=%.4f\tpopularity=%.4f' %
+          #      (precision, recall, coverage, popularity), file=sys.stderr)
 
 
 def use(user):
@@ -167,9 +165,16 @@ def use(user):
     for index in r_list:
         f_list.append(str(index[0]))
     result = '::'.join(f_list)
-    print(result)
     # itemcf.evaluate()
     return result
+
+if __name__ == '__main__':
+    a = []
+    for i in range(1, len(sys.argv)):
+        a.append((str(sys.argv[i])))
+
+    print(use(a[0]))
+
 
 
 

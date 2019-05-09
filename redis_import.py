@@ -15,7 +15,7 @@ def mysql_items():
         item_name = Column(String(20))
         item_type = Column(String(1))
 
-    conn = create_engine('mysql+pymysql://root:980205@39.105.170.59:3306/wisdom_restaurant?charset=utf8')
+    conn = create_engine('mysql+pymysql://root:980205@localhost:3306/Recommendation_system?charset=utf8')
     DBSession = sessionmaker(bind=conn)
     session = DBSession()
     return session, User
@@ -27,10 +27,10 @@ with open(ratingfile, 'r') as file:
     for i, line in enumerate(file):
         user, items, rating = line.split('::')
         if session.query(User.item_type).filter_by(item_id=items).all()[0][0] == '0':
-            r.rpush("breakfast", line)
+            r.rpush("da", line)
             print("The %d push success"% i)
         elif session.query(User.item_type).filter_by(item_id=items).all()[0][0] == '1':
-            r.rpush("dinner", line)
+            r.rpush("ta", line)
             print("The %d push success" % i)
 
 
